@@ -2,6 +2,10 @@
 # prebuilt agent, and therefore definitely able to be leveraged by
 # copilotkit
 
+"""prompt_value = summarizer_prompt.invoke({"argument": argument_text})
+input_string = prompt_value.to_string()
+summary_result = call_summarizer(input_string, summarizer_graph=summarizer_graph, config=config)"""
+
 # first, we import our state submitting information for our ui
 from copilotkit import CopilotKitState # extends MessagesState
 from copilotkit.langgraph import copilotkit_emit_state
@@ -313,7 +317,7 @@ responses = """ {
                     "content": "Count IV of Mr. Caines' Complaint should not be dismissed for failure to state a claim. Defendant construes the requirements for the creation of a fiduciary relationship between a lender and borrower too narowly, and thus Mr. Caines should be permitted to pursue his case for a breach of good faith and fair dealing.\nA fiduciary relationship does not exist between a lender and a borrower unless certain facts exist which establish a relationship of trust and confidence between the two. A confidential relationship exists whenever confidence is reposed by one party in another with resulting superiority and influence exercised by the other. Not only must there be confidence by one party in the other, but the party reposing the confidence must also be in a position of inequality, dependence, weakness, or lack of knowledge. Furthermore, it must be shown that the dominant party wrongfully abused this confidence by improperly influencing the weaker so as to obtain an unconscionable advantage. Whether such a relationship exists is essentially a question of fact.\nwaived any non-compliance issues when it filed the joint motion in the bankruptcy proceeding, and Defendant should be judicially estopped from asserting the absence of an agreement in this case.\nKruse v. Nat'l Bank of Indianapolis, 815 N.E.2d 137, 149 (Ind. Ct. App. 2004). Mr. Caines trusted Defendant with the modification of his loan and the proper posting of his payments.  He was one man up against an enormous corporation.  His was undoubtedly a position of \"inequality, dependence, weakness, or lack of knowledge.\"  Defendant abused Mr. Caines' trust when it reneged on the agreement that it filed with the Court.  Because this is a question of fact that should be construed in favor of Mr. Caines, his complaint for a breach of good faith and fair dealing should not be dismissed for failure to state a claim."
                 }"""
 
-app.invoke(f"")
+app.invoke({"message": agent_prompt})
 
 # example invocation
 """inputs = {"messages": [HumanMessage(content="What is the capital of France?")]}
