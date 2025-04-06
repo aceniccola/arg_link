@@ -44,6 +44,17 @@ toolkit = PlayWrightBrowserToolkit.from_browser(async_browser=async_browser)
 tools = toolkit.get_tools()
 tools.extend([wiki_tool, gen_search_tool, fed_search_tool])
 
+# Fix invalid function names for Gemini compatibility
+for i, tool in enumerate(tools):
+    # Check if the name is valid for Gemini API (must start with letter/underscore and contain only alphanumeric, underscores, dots, or dashes)
+    if not tool.name or not (tool.name[0].isalpha() or tool.name[0] == '_'):
+        # Rename tool with invalid name
+        old_name = tool.name
+        tool.name = f"tool_{i}" if not tool.name else f"tool_{tool.name.replace(' ', '_')}"
+        print(f"Renamed tool '{old_name}' to '{tool.name}' for API compatibility")
+    
+    # Replace any invalid characters
+    tool.name = ''.join(c for c in tool.name if c.isalnum() or c in ['_', '.', '-'])
 
 if __name__ == "__main__":
     print("\nThe following are the tools that we can use in this project:\n")

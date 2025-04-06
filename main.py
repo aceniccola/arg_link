@@ -38,26 +38,25 @@ def iteration(example: dict):
         # assume we are just working with the content for now
         # we go through each of the moving and response arguments and summarize everything all at once
         for argument in example['moving_brief']['brief_arguments']:
-            # TODO: this is where our user prompt stuff would go for the summarizer
-            argument["summary"] = prebuilt_summarizer(f"Here is the argument: {argument['content']}")
+            argument["summary"] = prebuilt_summarizer(summarizer_prompt.invoke({"argument": argument['content']}))
         for argument in example['response_brief']['brief_arguments']:
-            # TODO: this is where our user prompt stuff would go for the summaraizer
-            argument["summary"] = prebuilt_summarizer(argument['content'])
+            argument["summary"] = prebuilt_summarizer(summarizer_prompt.invoke({"argument": argument['content']}))
 
         # we then go though each of the moving briefs to check for responses that match
         for argument in example['moving_brief']['brief_arguments']:
-            verified = False
-
+            verified = True
             while not verified:
                 # TODO: how would I implement the verifier in this workflow? Do I add another step and 
                 # retry this until success? Or do I let the agent call the verifier by not respond to the user. 
                 # If the verifier doesn't like the responses, it comes back with feedback.
+            
+                
+                links = prebuilt_agent(agent_prompt.invoke({"argument": argument['content'], "responses": example['response_brief']}), example['response_brief'] )
 
-                # TODO: this is where our user prompt stuff would go for the agent
-                links = prebuilt_agent(argument['content'], example['response_brief'] )
+                for link in links:
+                    if verifier_agent(verifier_prompt.invoke({"argument": argument['content'], "response": link}), example['response_brief']) == "0":
+                        verified = False
 
-                # TODO: this is where our user prompt stuff would go for the verifier
-                verified = verifier_agent(links, argument['content'], example['response_brief'])
         return links
 
 def main(data: json):
@@ -83,4 +82,4 @@ def test(data: json):
 if __name__ == "__main__":
 
     with open("output.txt", "w") as file:
-        file.write(main())
+        file.write(str(main()))
