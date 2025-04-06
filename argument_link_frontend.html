@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Brief Legal Argument Link Visualizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      /* --- Base & Left Panel Styles --- */
+      details > summary { list-style: none; cursor: pointer; padding: 0.75rem 1rem; background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 0.375rem; display: flex; align-items: center; justify-content: space-between; transition: background-color 0.2s ease; }
+      details > summary:hover { background-color: #f3f4f6; }
+      details > summary::-webkit-details-marker { display: none; }
+      details[open] > summary { border-bottom-left-radius: 0; border-bottom-right-radius: 0; border-bottom-color: transparent; }
+      details[open] > summary .chevron-icon { transform: rotate(90deg); }
+      details > div.response-list-container { padding: 0.75rem 1rem 0.75rem 1rem; border-left: 1px solid #e5e7eb; border-right: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb; border-bottom-left-radius: 0.375rem; border-bottom-right-radius: 0.375rem; margin-left: 0; margin-top: 0; background-color: #ffffff; }
+      .response-argument-item { display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0.8rem; background-color: #f0f9ff; border: 1px solid #e0f2fe; border-radius: 0.375rem; margin-bottom: 0.5rem; font-size: 0.875rem; cursor: pointer; transition: background-color 0.2s, border-color 0.2s; gap: 0.5rem; }
+      .response-argument-item:hover { background-color: #e0f2fe; border-color: #bae6fd; }
+      .response-argument-item.selected { background-color: #dbeafe; border-color: #93c5fd; font-weight: 500; color: #1e40af; }
+      .response-argument-item:last-child { margin-bottom: 0; }
+      .response-item-text { flex-grow: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+      /* --- Small Action Buttons within Lists --- */
+      .list-item-button { padding: 0.2rem 0.5rem; font-size: 0.75rem; border-radius: 0.25rem; border: 1px solid; transition: background-color 0.2s, opacity 0.2s; white-space: nowrap; }
+      .list-item-button:disabled { opacity: 0.5; cursor: not-allowed; }
+      .unlink-button { border-color: #fb7185; color: #e11d48; background-color: #fff1f2; }
+      .unlink-button:hover:not(:disabled) { background-color: #ffe4e6; }
+      .view-button { border-color: #6366f1; color: #4338ca; background-color: #eef2ff; }
+      .view-button:hover:not(:disabled) { background-color: #e0e7ff; }
+      .assign-button { border-color: #22c55e; color: #15803d; background-color: #f0fdf4; }
+      .assign-button:hover:not(:disabled) { background-color: #dcfce7; }
+      .delete-button { border-color: #f87171; color: #dc2626; background-color: #fef2f2; }
+      .delete-button:hover:not(:disabled) { background-color: #fee2e2; }
+
+      .no-responses, .no-unlinked-responses { font-style: italic; color: #6b7280; font-size: 0.875rem; padding: 0.5rem; text-align: center; }
+      .moving-heading-text { flex-grow: 1; margin-right: 0.5rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .response-count { margin-left: auto; margin-right: 0.5rem; font-size: 0.8rem; font-weight: 400; color: #4b5563; background-color: #e5e7eb; padding: 0.1rem 0.5rem; border-radius: 0.5rem; flex-shrink: 0; white-space: nowrap; }
+      .chevron-icon { width: 1.25rem; height: 1.25rem; color: #4f46e5; transition: transform 0.2s ease-in-out; flex-shrink: 0; }
+
+      /* --- Right Panel: Content Display --- */
+      #content-panel { height: calc(100vh - 12rem); overflow-y: auto; }
+      #content-area { min-height: 100%; }
+      .content-text { white-space: pre-wrap; word-wrap: break-word; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 0.8rem; line-height: 1.4; background-color: #f8fafc; padding: 0.75rem; border-radius: 0.25rem; border: 1px solid #e2e8f0; }
+      .placeholder-message { display: flex; align-items: center; justify-content: center; height: 100%; min-height: 200px; color: #6b7280; text-align: center; padding: 1rem; }
+      .content-action-button { padding: 0.3rem 0.8rem; font-size: 0.8rem; border-radius: 0.375rem; border: 1px solid; transition: background-color 0.2s, opacity 0.2s; white-space: nowrap; margin-left: 0.75rem; }
+      .content-action-button:disabled { opacity: 0.5; cursor: not-allowed; }
+      .edit-content-button { border-color: #a78bfa; color: #6d28d9; background-color: #f5f3ff; }
+      .edit-content-button:hover:not(:disabled) { background-color: #ede9fe; }
+      .save-content-button { border-color: #22c55e; color: #15803d; background-color: #f0fdf4; }
+      .save-content-button:hover:not(:disabled) { background-color: #dcfce7; }
+      .cancel-content-button { border-color: #fb7185; color: #e11d48; background-color: #fff1f2; }
+      .cancel-content-button:hover:not(:disabled) { background-color: #ffe4e6; }
+      .editing-textarea { width: 100%; min-height: 150px; padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 0.375rem; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 0.8rem; line-height: 1.4; margin-top: 0.5rem; margin-bottom: 0.5rem; resize: vertical; background-color: #f8fafc; }
+
+      /* --- Button Styles (Top Bar) --- */
+      .action-button { padding: 0.5rem 1rem; font-size: 0.875rem; font-weight: 500; border-radius: 0.375rem; cursor: pointer; transition: background-color 0.2s, border-color 0.2s, color 0.2s; border: 1px solid transparent; white-space: nowrap; }
+      .complete-button-active { background-color: #16a34a; color: white; border-color: #15803d; }
+      .complete-button-active:hover { background-color: #15803d; }
+      .incomplete-button-active { background-color: #f59e0b; color: white; border-color: #d97706; }
+      .incomplete-button-active:hover { background-color: #d97706; }
+      .action-button:disabled { background-color: #d1d5db; color: #6b7280; cursor: not-allowed; border-color: #9ca3af; }
+      .load-json-button { background-color: #0ea5e9; color: white; border-color: #0284c7; } /* sky-500 */
+      .load-json-button:hover { background-color: #0284c7; } /* sky-600 */
+      .export-json-button { background-color: #64748b; color: white; border-color: #475569; } /* slate-500 */
+      .export-json-button:hover { background-color: #475569; } /* slate-600 */
+
+
+      /* --- Unlinked Responses Panel --- */
+      #unlinked-responses-panel { border: 1px solid #d1d5db; border-radius: 0.5rem; background-color: #f9fafb; }
+      #unlinked-responses-list { max-height: 250px; overflow-y: auto; padding: 0.5rem; }
+      .unlinked-response-item { display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.75rem; background-color: #fffbeb; border: 1px solid #fef3c7; border-radius: 0.375rem; margin-bottom: 0.5rem; font-size: 0.875rem; gap: 0.5rem; }
+      .unlinked-response-item:last-child { margin-bottom: 0; }
+      .unlinked-item-text { flex-grow: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #713f12; }
+      #add-response-btn { display: block; width: calc(100% - 2rem); margin: 1rem auto; padding: 0.5rem 1rem; font-size: 0.875rem; font-weight: 500; border-radius: 0.375rem; cursor: pointer; transition: background-color 0.2s, opacity 0.2s; border: 1px solid #2563eb; background-color: #3b82f6; color: white; text-align: center; }
+      #add-response-btn:hover:not(:disabled) { background-color: #2563eb; }
+      #add-response-btn:disabled { opacity: 0.5; cursor: not-allowed; background-color: #9ca3af; border-color: #6b7280; }
+
+    </style>
+</head>
+<body class="bg-gray-100 font-sans p-4 md:p-8">
+
+    <input type="file" id="json-file-input" accept=".json" style="display: none;">
+
+    <div class="max-w-full mx-auto bg-white p-6 rounded-lg shadow-lg">
+        <h1 class="text-2xl md:text-3xl font-bold text-gray-800 mb-6 text-center">Argument Link Visualization</h1>
+
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-2 mb-4 p-3 bg-gray-100 rounded border border-gray-200">
+             <label for="case-selector" class="text-sm font-medium text-gray-700 whitespace-nowrap">Select Case:</label>
+             <select id="case-selector" class="flex-grow md:flex-grow-0 md:w-auto p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm"></select>
+             <button id="load-json-btn" class="action-button load-json-button">Load JSON</button>
+             <button id="export-json-btn" class="action-button export-json-button">Export JSON</button>
+             <button id="mark-complete-btn" class="action-button">Mark as Complete</button>
+             <button id="mark-incomplete-btn" class="action-button">Mark as Incomplete</button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="space-y-6">
+                <div id="hierarchy-panel" class="border border-gray-300 rounded-lg p-4 bg-gray-50/50 overflow-y-auto" style="height: calc(60vh - 6rem);">
+                    <h2 id="moving-brief-title" class="text-xl font-semibold text-gray-700 mb-4 sticky top-0 bg-gray-100 py-2 border-b">Moving Brief Arguments</h2>
+                    <div id="hierarchical-list" class="space-y-3"></div>
+                </div>
+                <div id="unlinked-responses-panel" class="p-4">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-3 border-b pb-2">Unlinked Response Arguments</h3>
+                    <div id="unlinked-responses-list" class="space-y-2 mb-4"></div>
+                    <button id="add-response-btn">Add New Response</button>
+                </div>
+            </div>
+            <div id="content-panel-wrapper" class="border border-gray-300 rounded-lg p-4 bg-gray-50/50">
+                 <h2 class="text-xl font-semibold text-gray-700 mb-4 sticky top-0 bg-gray-50/50 py-2 border-b">Argument Content</h2>
+                <div id="content-panel" style="height: calc(100vh - 12rem);">
+                    <div id="content-area" class="space-y-6"></div>
+                </div>
+             </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Data (Initial Default Data) ---
+        // This will be overwritten if the user loads JSON
+        let allCasesData = [
+             { /* Case 1 Data */
+                id: "CASE_1", name: "Case 1: Moving Brief ID (MOVING_MIXED_01) Response Brief ID (RESPONSE_MIXED_01)", completed: false,
+                moving_brief: { brief_id: "MOVING_MIXED_01", brief_arguments: [ { index: 0, heading: "I. Introduction (SvJ)", content: "Intro content..." }, { index: 1, heading: "II. Main Point A (SvJ - Multiple)", content: "Point A content..." }, { index: 2, heading: "III. Main Point B (SvJ - Single)", content: "Point B content..." }, { index: 3, heading: "IV. Conclusion (SvJ - None)", content: "Conclusion content..." } ] },
+                response_brief: { brief_id: "RESPONSE_MIXED_01", brief_arguments: [ { index: 0, heading: "Response Intro (SvJ)", content: "Response intro content..." }, { index: 1, heading: "Rebuttal 1 to Point A (SvJ)", content: "Rebuttal 1A content..." }, { index: 2, heading: "Rebuttal 2 to Point A (SvJ)", content: "Rebuttal 2A content..." }, { index: 3, heading: "Rebuttal to Point B (SvJ)", content: "Rebuttal B content..." }, { index: 4, heading: "Affirmative Defenses (SvJ)", content: "Affirmative defense content..." }, { index: 5, heading: "Procedural Issue (SvJ)", content: "Procedural issue content..." } ] },
+                true_links: [ ["I. Introduction (SvJ)", "Response Intro (SvJ)"], ["II. Main Point A (SvJ - Multiple)", "Rebuttal 1 to Point A (SvJ)"], ["II. Main Point A (SvJ - Multiple)", "Rebuttal 2 to Point A (SvJ)"], ["III. Main Point B (SvJ - Single)", "Rebuttal to Point B (SvJ)"] ]
+            },
+             { /* Case 2 Data */
+                 id: "CASE_2", name: "Case 2: Moving Brief ID (MOVING_FULL_02) Response Brief ID (RESPONSE_FULL_02)", completed: true,
+                 moving_brief: { brief_id: "MOVING_FULL_02", brief_arguments: [ { index: 0, heading: "I. Factual Background (DvR)", content: "Facts..." }, { index: 1, heading: "II. Statutory Claim (DvR)", content: "Statute..." }, { index: 2, heading: "III. Precedent Argument (DvR)", content: "Precedent..." } ] },
+                 response_brief: { brief_id: "RESPONSE_FULL_02", brief_arguments: [ { index: 0, heading: "Counter Factual Statement (DvR)", content: "Counter facts..." }, { index: 1, heading: "Statutory Interpretation (DvR)", content: "Counter statute..." }, { index: 2, heading: "Distinguishing Precedent (DvR)", content: "Counter precedent..." } ] },
+                 true_links: [ ["I. Factual Background (DvR)", "Counter Factual Statement (DvR)"], ["II. Statutory Claim (DvR)", "Statutory Interpretation (DvR)"], ["III. Precedent Argument (DvR)", "Distinguishing Precedent (DvR)"] ]
+             },
+              { /* Case 3 Data */
+                 id: "CASE_3", name: "Case 3: Moving Brief ID (MOVING_NONE_03) Response Brief ID (RESPONSE_NONE_03)", completed: false,
+                 moving_brief: { brief_id: "MOVING_NONE_03", brief_arguments: [ { index: 0, heading: "I. Jurisdictional Challenge (PvC)", content: "Jurisdiction..." }, { index: 1, heading: "II. Failure to State Claim (PvC)", content: "Claim..." } ] },
+                 response_brief: { brief_id: "RESPONSE_NONE_03", brief_arguments: [ { index: 0, heading: "Jurisdiction Defense (PvC)", content: "Defense..." }, { index: 1, heading: "Claim Sufficiency (PvC)", content: "Sufficiency..." } ] },
+                 true_links: [ ]
+             }
+        ];
+
+        // --- DOM Elements ---
+        const listContainer = document.getElementById('hierarchical-list');
+        const contentArea = document.getElementById('content-area');
+        const caseSelector = document.getElementById('case-selector');
+        const markCompleteBtn = document.getElementById('mark-complete-btn');
+        const markIncompleteBtn = document.getElementById('mark-incomplete-btn');
+        const movingBriefTitle = document.getElementById('moving-brief-title');
+        const unlinkedListContainer = document.getElementById('unlinked-responses-list');
+        const addResponseBtn = document.getElementById('add-response-btn');
+        const loadJsonBtn = document.getElementById('load-json-btn');
+        const exportJsonBtn = document.getElementById('export-json-btn');
+        const jsonFileInput = document.getElementById('json-file-input');
+
+        // --- State ---
+        let currentlySelectedItem = null;
+        let currentCaseId = null;
+        let movingArgsMap = new Map();
+        let responseArgsMap = new Map();
+
+        // --- Constants ---
+        const READ_ONLY_MESSAGE = "Case is complete. Links/Responses cannot be modified or deleted.";
+        const ALREADY_COMPLETE_MESSAGE = "This case is already marked as complete.";
+        const NOT_COMPLETE_MESSAGE = "This case is not marked as complete.";
+        const EDIT_READ_ONLY_MESSAGE = "Case is complete. Content cannot be edited.";
+        const DELETE_READ_ONLY_MESSAGE = "Case is complete. Responses cannot be deleted.";
+
+        // --- Helper Functions ---
+        function sanitize(str) { return str.replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+        function getCaseData(caseId) { return allCasesData.find(c => c.id === caseId); }
+
+        function groupLinks(movingArgs, links) { /* ... no change ... */
+            const grouped = new Map();
+            movingArgs.forEach(arg => { grouped.set(arg.heading, []); });
+            links.forEach(([movingHeading, responseHeading]) => {
+                if (grouped.has(movingHeading)) {
+                    grouped.get(movingHeading).push(responseHeading);
+                } else {
+                     console.warn(`Link ignored during grouping: Moving heading "${movingHeading}" not found.`);
+                }
+            });
+            return grouped;
+        }
+
+        function getUnlinkedResponses(allResponseArgs, links) { /* ... no change ... */
+            const allResponseHeadings = new Set(allResponseArgs.map(arg => arg.heading));
+            const linkedResponseHeadings = new Set(links.map(([_, respHeading]) => respHeading));
+            const unlinkedHeadings = [];
+            allResponseHeadings.forEach(heading => {
+                if (!linkedResponseHeadings.has(heading)) {
+                    unlinkedHeadings.push(heading);
+                }
+            });
+            return unlinkedHeadings;
+         }
+
+        function displayArgumentContent(movingHeading, responseHeading) { /* ... no change ... */
+            const responseArg = responseArgsMap.get(responseHeading);
+            const movingArg = movingHeading ? movingArgsMap.get(movingHeading) : null;
+            const currentCase = getCaseData(currentCaseId);
+            const isCompleted = currentCase ? currentCase.completed : true;
+
+            if (!responseArg) {
+                 console.error("Could not find response argument content for:", responseHeading);
+                 contentArea.innerHTML = `<p class="placeholder-message text-red-500">Error: Could not load response argument content.</p>`;
+                 return;
+            }
+            let movingContentHTML = '';
+            if (movingArg) {
+                 movingContentHTML = `<div><h3 class="text-lg font-semibold text-indigo-700 mb-2 border-b pb-1">Moving Argument</h3><h4 class="text-base font-medium text-gray-800 mb-2">${sanitize(movingArg.heading)}</h4><div class="content-text">${sanitize(movingArg.content)}</div></div><hr class="my-4 border-gray-300">`;
+            } else if (movingHeading === null) {
+                 movingContentHTML = `<div><h3 class="text-lg font-semibold text-indigo-700 mb-2 border-b pb-1">Moving Argument</h3><p class="text-sm text-gray-500 italic">(This response is currently unlinked)</p></div><hr class="my-4 border-gray-300">`;
+            }
+            const responseTitle = movingArg ? 'Selected Response Argument' : 'Unlinked Response Argument';
+            const responseContentHTML = `
+                <div id="response-content-container" data-response-heading="${sanitize(responseHeading)}">
+                    <div class="flex justify-between items-center mb-2 border-b pb-1">
+                        <h3 class="text-lg font-semibold text-purple-700">${responseTitle}</h3>
+                        <button id="edit-response-btn" class="content-action-button edit-content-button" ${isCompleted ? 'disabled' : ''} title="${isCompleted ? EDIT_READ_ONLY_MESSAGE : 'Edit response content'}">
+                            Edit
+                        </button>
+                    </div>
+                    <h4 class="text-base font-medium text-gray-800 mb-2">${sanitize(responseArg.heading)}</h4>
+                    <div class="content-text" id="response-content-display">${sanitize(responseArg.content)}</div>
+                    <div id="response-edit-area"></div>
+                </div>`;
+            contentArea.innerHTML = `<div class="space-y-6">${movingContentHTML}${responseContentHTML}</div>`;
+            const editButton = contentArea.querySelector('#edit-response-btn');
+            if (editButton) {
+                editButton.addEventListener('click', handleEditResponseClick);
+            }
+        }
+
+        function updateSelectionHighlight(selectedElement) { /* ... no change ... */
+             if (currentlySelectedItem) currentlySelectedItem.classList.remove('selected');
+             if (selectedElement) {
+                 selectedElement.classList.add('selected');
+                 currentlySelectedItem = selectedElement;
+             } else {
+                 currentlySelectedItem = null;
+             }
+        }
+
+        function renderHierarchy(groupedData, caseName, isCompleted) { /* ... no change ... */
+            listContainer.innerHTML = '';
+            // Title is now set in loadCase
+            // movingBriefTitle.textContent = `Moving Brief Arguments (${caseName})`;
+            if (!movingArgsMap || movingArgsMap.size === 0) { listContainer.innerHTML = '<p class="text-center text-gray-500">No moving brief arguments found.</p>'; return; }
+
+            movingArgsMap.forEach((_, movingHeading) => {
+                const responseHeadings = groupedData.get(movingHeading) || [];
+                const details = document.createElement('details');
+                const summary = document.createElement('summary');
+                summary.classList.add('text-base', 'font-medium', 'text-gray-700');
+                const headingText = document.createElement('span');
+                headingText.classList.add('moving-heading-text');
+                headingText.textContent = movingHeading;
+                headingText.title = movingHeading;
+                const countSpan = document.createElement('span');
+                countSpan.classList.add('response-count');
+                countSpan.textContent = `Responses: ${responseHeadings.length}`;
+                const iconContainer = document.createElement('span');
+                iconContainer.classList.add('chevron-icon');
+                iconContainer.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-full h-full"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>`;
+                summary.appendChild(headingText);
+                summary.appendChild(countSpan);
+                summary.appendChild(iconContainer);
+                const responseContainer = document.createElement('div');
+                responseContainer.classList.add('response-list-container');
+                details.appendChild(summary);
+                details.appendChild(responseContainer);
+
+                if (responseHeadings.length > 0) {
+                    responseHeadings.forEach(respHeading => {
+                        const responseDiv = document.createElement('div');
+                        responseDiv.classList.add('response-argument-item');
+                        responseDiv.dataset.responseHeading = respHeading;
+                        responseDiv.dataset.parentMovingHeading = movingHeading;
+                        const textSpan = document.createElement('span');
+                        textSpan.classList.add('response-item-text');
+                        textSpan.textContent = respHeading;
+                        textSpan.title = respHeading;
+                        const actionsDiv = document.createElement('div');
+                        actionsDiv.classList.add('response-item-actions', 'flex', 'gap-2', 'flex-shrink-0');
+
+                        const viewButton = document.createElement('button');
+                        viewButton.textContent = 'View';
+                        viewButton.classList.add('list-item-button', 'view-button');
+                        viewButton.onclick = (e) => { e.stopPropagation(); displayArgumentContent(movingHeading, respHeading); updateSelectionHighlight(responseDiv); };
+
+                        const unlinkButton = document.createElement('button');
+                        unlinkButton.textContent = 'Unlink';
+                        unlinkButton.classList.add('list-item-button', 'unlink-button');
+                        unlinkButton.disabled = isCompleted;
+                        unlinkButton.title = isCompleted ? READ_ONLY_MESSAGE : '';
+                        unlinkButton.onclick = (e) => { e.stopPropagation(); handleUnlinkResponse(movingHeading, respHeading); };
+
+                        actionsDiv.appendChild(viewButton);
+                        actionsDiv.appendChild(unlinkButton);
+                        responseDiv.appendChild(textSpan);
+                        responseDiv.appendChild(actionsDiv);
+
+                         responseDiv.addEventListener('click', (event) => { if (!event.target.closest('.response-item-actions')) { displayArgumentContent(movingHeading, respHeading); updateSelectionHighlight(responseDiv); } });
+                        responseContainer.appendChild(responseDiv);
+                    });
+                } else {
+                    const noResponseDiv = document.createElement('div');
+                    noResponseDiv.classList.add('no-responses');
+                    noResponseDiv.textContent = 'No linked responses found.';
+                    responseContainer.appendChild(noResponseDiv);
+                }
+                listContainer.appendChild(details);
+            });
+         }
+
+        function renderUnlinkedResponses(unlinkedHeadings, isCompleted) { /* ... no change ... */
+            unlinkedListContainer.innerHTML = '';
+            if (unlinkedHeadings.length === 0) { unlinkedListContainer.innerHTML = '<p class="no-unlinked-responses">No unlinked responses.</p>'; return; }
+
+            unlinkedHeadings.forEach(respHeading => {
+                const itemDiv = document.createElement('div');
+                itemDiv.classList.add('unlinked-response-item');
+                const textSpan = document.createElement('span');
+                textSpan.classList.add('unlinked-item-text');
+                textSpan.textContent = respHeading;
+                textSpan.title = respHeading;
+                const actionsDiv = document.createElement('div');
+                actionsDiv.classList.add('unlinked-item-actions', 'flex', 'gap-3', 'flex-shrink-0');
+
+                const viewButton = document.createElement('button');
+                viewButton.textContent = 'View';
+                viewButton.classList.add('list-item-button', 'view-button');
+                viewButton.onclick = () => { displayArgumentContent(null, respHeading); updateSelectionHighlight(null); };
+
+                const assignButton = document.createElement('button');
+                assignButton.textContent = 'Assign';
+                assignButton.classList.add('list-item-button', 'assign-button');
+                assignButton.disabled = isCompleted;
+                assignButton.title = isCompleted ? READ_ONLY_MESSAGE : '';
+                assignButton.onclick = () => { handleAssignResponse(respHeading); };
+
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Delete';
+                deleteButton.classList.add('list-item-button', 'delete-button');
+                deleteButton.disabled = isCompleted;
+                deleteButton.title = isCompleted ? DELETE_READ_ONLY_MESSAGE : 'Permanently delete this response';
+                deleteButton.onclick = () => { handleDeleteResponse(respHeading); };
+
+                actionsDiv.appendChild(viewButton);
+                actionsDiv.appendChild(assignButton);
+                actionsDiv.appendChild(deleteButton);
+                itemDiv.appendChild(textSpan);
+                itemDiv.appendChild(actionsDiv);
+                unlinkedListContainer.appendChild(itemDiv);
+            });
+        }
+
+        function populateDropdown() { /* ... no change ... */
+            const previouslySelected = caseSelector.value;
+            caseSelector.innerHTML = '';
+            allCasesData.forEach(caseData => {
+                const option = document.createElement('option');
+                option.value = caseData.id;
+                option.textContent = `${caseData.completed ? '✅ ' : ''}${caseData.name}`; // Uses generated name
+                caseSelector.appendChild(option);
+            });
+             if (previouslySelected && allCasesData.some(c => c.id === previouslySelected)) caseSelector.value = previouslySelected;
+             else if (allCasesData.length > 0) caseSelector.value = allCasesData[0].id;
+        }
+
+        function updateButtonStates(isCompleted) { /* ... no change ... */
+            markCompleteBtn.disabled = isCompleted;
+            markCompleteBtn.textContent = isCompleted ? "Completed" : "Mark as Complete";
+            markCompleteBtn.classList.toggle('complete-button-active', !isCompleted);
+            markCompleteBtn.title = isCompleted ? ALREADY_COMPLETE_MESSAGE : '';
+
+            markIncompleteBtn.disabled = !isCompleted;
+            markIncompleteBtn.classList.toggle('incomplete-button-active', isCompleted);
+            markIncompleteBtn.title = !isCompleted ? NOT_COMPLETE_MESSAGE : '';
+
+            addResponseBtn.disabled = isCompleted;
+            addResponseBtn.title = isCompleted ? READ_ONLY_MESSAGE : '';
+        }
+
+        // --- Core Data Loading and Rendering Function ---
+        function loadCase(caseId) {
+            const selectedCaseData = getCaseData(caseId);
+            if (!selectedCaseData) { /* ... error handling ... */
+                console.error("Selected case data not found:", caseId);
+                listContainer.innerHTML = '<p class="text-red-500 p-4">Error: Could not load selected case.</p>';
+                unlinkedListContainer.innerHTML = '<p class="no-unlinked-responses">Error loading case.</p>';
+                contentArea.innerHTML = '<p class="placeholder-message">Please select a valid case.</p>';
+                movingBriefTitle.textContent = "Moving Brief Arguments"; // Reset title on error
+                updateButtonStates(true);
+                markIncompleteBtn.disabled = true;
+                markIncompleteBtn.title = '';
+                addResponseBtn.disabled = true;
+                addResponseBtn.title = 'Cannot perform action: Error loading case.';
+                currentCaseId = null;
+                movingArgsMap.clear();
+                responseArgsMap.clear();
+                return;
+             }
+
+            currentCaseId = caseId;
+            const isCompleted = selectedCaseData.completed;
+
+            // Update Title using the generated name
+            movingBriefTitle.textContent = `Moving Arguments with Response Arguments` /*(${selectedCaseData.name})` let's leave this commented out for now*/;
+
+            movingArgsMap = new Map(selectedCaseData.moving_brief.brief_arguments.map(arg => [arg.heading, arg]));
+            responseArgsMap = new Map(selectedCaseData.response_brief.brief_arguments.map(arg => [arg.heading, arg]));
+
+            const groupedData = groupLinks(selectedCaseData.moving_brief.brief_arguments, selectedCaseData.true_links);
+            const unlinkedResponses = getUnlinkedResponses(selectedCaseData.response_brief.brief_arguments, selectedCaseData.true_links);
+
+            renderHierarchy(groupedData, selectedCaseData.name, isCompleted);
+            renderUnlinkedResponses(unlinkedResponses, isCompleted);
+
+            contentArea.innerHTML = `<p class="placeholder-message">Select a response argument from the left (or view an unlinked one) to see content.</p>`;
+            updateSelectionHighlight(null);
+            updateButtonStates(isCompleted);
+        }
+
+        // --- Event Handlers for Editing Response Content ---
+        function handleEditResponseClick(event) { /* ... no change ... */
+            const editButton = event.target;
+            const container = editButton.closest('#response-content-container');
+            const responseHeading = container.dataset.responseHeading;
+            const responseArg = responseArgsMap.get(responseHeading);
+            const contentDisplayDiv = container.querySelector('#response-content-display');
+            const editAreaDiv = container.querySelector('#response-edit-area');
+            if (!responseArg || !contentDisplayDiv || !editAreaDiv) { console.error("Could not find elements needed for editing."); return; }
+            contentDisplayDiv.style.display = 'none';
+            editButton.disabled = true;
+            editButton.title = "Editing in progress...";
+            const textarea = document.createElement('textarea');
+            textarea.classList.add('editing-textarea');
+            textarea.value = responseArg.content;
+            const saveButton = document.createElement('button');
+            saveButton.textContent = 'Save';
+            saveButton.classList.add('content-action-button', 'save-content-button');
+            saveButton.onclick = () => handleSaveResponse(responseHeading);
+            const cancelButton = document.createElement('button');
+            cancelButton.textContent = 'Cancel';
+            cancelButton.classList.add('content-action-button', 'cancel-content-button');
+            cancelButton.onclick = () => handleCancelEdit(responseHeading);
+            editAreaDiv.innerHTML = '';
+            editAreaDiv.appendChild(textarea);
+            editAreaDiv.appendChild(saveButton);
+            editAreaDiv.appendChild(cancelButton);
+        }
+        function handleSaveResponse(responseHeading) { /* ... no change ... */
+            const container = contentArea.querySelector(`#response-content-container[data-response-heading="${CSS.escape(responseHeading)}"]`);
+            if (!container) return;
+            const editAreaDiv = container.querySelector('#response-edit-area');
+            const textarea = editAreaDiv?.querySelector('textarea');
+            const newContent = textarea?.value;
+            if (newContent === undefined || newContent === null) { console.error("Could not find textarea or get new content."); handleCancelEdit(responseHeading); return; }
+            const currentCase = getCaseData(currentCaseId);
+            const responseArgIndex = currentCase?.response_brief?.brief_arguments.findIndex(arg => arg.heading === responseHeading);
+            if (currentCase && responseArgIndex > -1) {
+                currentCase.response_brief.brief_arguments[responseArgIndex].content = newContent;
+                responseArgsMap.set(responseHeading, { ...responseArgsMap.get(responseHeading), content: newContent });
+                cleanupEditUI(responseHeading, newContent);
+                alert("Response content updated.");
+            } else {
+                console.error("Could not find case or response argument in data to save.");
+                alert("Error saving content.");
+                handleCancelEdit(responseHeading);
+            }
+        }
+        function handleCancelEdit(responseHeading) { /* ... no change ... */
+             cleanupEditUI(responseHeading);
+        }
+        function cleanupEditUI(responseHeading, newContent = null) { /* ... no change ... */
+            const container = contentArea.querySelector(`#response-content-container[data-response-heading="${CSS.escape(responseHeading)}"]`);
+             if (!container) return;
+            const contentDisplayDiv = container.querySelector('#response-content-display');
+            const editAreaDiv = container.querySelector('#response-edit-area');
+            const editButton = container.querySelector('#edit-response-btn');
+            const currentCase = getCaseData(currentCaseId);
+            const isCompleted = currentCase ? currentCase.completed : true;
+            if (newContent !== null && contentDisplayDiv) { contentDisplayDiv.innerHTML = sanitize(newContent); }
+            if (editAreaDiv) editAreaDiv.innerHTML = '';
+            if (contentDisplayDiv) contentDisplayDiv.style.display = 'block';
+            if (editButton) { editButton.disabled = isCompleted; editButton.title = isCompleted ? EDIT_READ_ONLY_MESSAGE : 'Edit response content'; }
+        }
+
+        // --- Other Action Handlers ---
+        function handleMarkComplete() { /* ... no change ... */
+             if (!currentCaseId) return;
+             const currentCase = getCaseData(currentCaseId);
+             if (currentCase && !currentCase.completed) { currentCase.completed = true; populateDropdown(); loadCase(currentCaseId); }
+        }
+        function handleMarkIncomplete() { /* ... no change ... */
+            if (!currentCaseId) return;
+            const currentCase = getCaseData(currentCaseId);
+            if (currentCase && currentCase.completed) { currentCase.completed = false; populateDropdown(); loadCase(currentCaseId); }
+        }
+        function handleAddResponse() { /* ... no change ... */
+            if (!currentCaseId) return;
+            const currentCase = getCaseData(currentCaseId);
+            if (!currentCase || currentCase.completed) { alert(READ_ONLY_MESSAGE); return; }
+            const newHeading = prompt("Enter the heading for the new response argument:");
+            if (!newHeading || newHeading.trim() === '') { alert("Response heading cannot be empty."); return; }
+            if (responseArgsMap.has(newHeading)) { if (!confirm(`A response with heading "${newHeading}" already exists. Add anyway?`)) return; }
+            const newContent = prompt(`Enter the content for "${newHeading}":`);
+            if (newContent === null) return;
+            const newIndex = currentCase.response_brief.brief_arguments.length;
+            const newResponseArg = { index: newIndex, heading: newHeading.trim(), content: newContent };
+            currentCase.response_brief.brief_arguments.push(newResponseArg);
+            responseArgsMap.set(newResponseArg.heading, newResponseArg);
+            const unlinked = getUnlinkedResponses(currentCase.response_brief.brief_arguments, currentCase.true_links);
+            renderUnlinkedResponses(unlinked, currentCase.completed);
+            alert(`Response "${newHeading}" added as unlinked.`);
+        }
+        function handleUnlinkResponse(movingHeading, responseHeading) { /* ... no change ... */
+            if (!currentCaseId) return;
+            const currentCase = getCaseData(currentCaseId);
+            if (!currentCase || currentCase.completed) { alert(READ_ONLY_MESSAGE); return; }
+            const linkIndex = currentCase.true_links.findIndex(link => link[0] === movingHeading && link[1] === responseHeading);
+            if (linkIndex > -1) {
+                currentCase.true_links.splice(linkIndex, 1);
+                loadCase(currentCaseId);
+                alert(`Response "${responseHeading}" unlinked from "${movingHeading}".`);
+            } else {
+                console.warn(`Could not find link to remove: [${movingHeading}, ${responseHeading}]`);
+                alert(`Error: Could not find the specified link to remove.`);
+            }
+        }
+        function handleAssignResponse(responseHeading) { /* ... no change ... */
+            if (!currentCaseId) return;
+            const currentCase = getCaseData(currentCaseId);
+            if (!currentCase || currentCase.completed) { alert(READ_ONLY_MESSAGE); return; }
+            if (movingArgsMap.size === 0) { alert("No moving arguments available to assign to."); return; }
+            const movingArgHeadings = Array.from(movingArgsMap.keys());
+            const promptMessage = `Assign "${responseHeading}" to which moving argument?\n\nEnter the number:\n` + movingArgHeadings.map((h, i) => `${i + 1}. ${h}`).join('\n');
+            const choice = prompt(promptMessage);
+            if (choice === null || choice.trim() === '') return;
+            const choiceIndex = parseInt(choice, 10) - 1;
+            if (isNaN(choiceIndex) || choiceIndex < 0 || choiceIndex >= movingArgHeadings.length) { alert("Invalid selection."); return; }
+            const selectedMovingHeading = movingArgHeadings[choiceIndex];
+            const linkExists = currentCase.true_links.some(link => link[0] === selectedMovingHeading && link[1] === responseHeading);
+            if (linkExists) { alert(`"${responseHeading}" is already linked to "${selectedMovingHeading}".`); return; }
+            currentCase.true_links.push([selectedMovingHeading, responseHeading]);
+            loadCase(currentCaseId);
+            alert(`Response "${responseHeading}" assigned to "${selectedMovingHeading}".`);
+        }
+        function handleDeleteResponse(responseHeading) { /* ... no change ... */
+            if (!currentCaseId) return;
+            const currentCase = getCaseData(currentCaseId);
+            if (!currentCase || currentCase.completed) { alert(DELETE_READ_ONLY_MESSAGE); return; }
+            const confirmation = confirm(`Are you sure you want to permanently delete the response argument "${responseHeading}"? This cannot be undone.`);
+            if (!confirmation) { return; }
+            const responseArgIndex = currentCase.response_brief.brief_arguments.findIndex(arg => arg.heading === responseHeading);
+            if (responseArgIndex > -1) {
+                currentCase.response_brief.brief_arguments.splice(responseArgIndex, 1);
+                responseArgsMap.delete(responseHeading);
+                const unlinked = getUnlinkedResponses(currentCase.response_brief.brief_arguments, currentCase.true_links);
+                renderUnlinkedResponses(unlinked, currentCase.completed);
+                contentArea.innerHTML = `<p class="placeholder-message">Select a response argument from the left (or view an unlinked one) to see content.</p>`;
+                updateSelectionHighlight(null);
+                alert(`Response "${responseHeading}" deleted successfully.`);
+            } else {
+                console.error(`Could not find response argument "${responseHeading}" in data to delete.`);
+                alert("Error: Could not find the response argument to delete.");
+            }
+        }
+
+        // --- JSON Import/Export Handlers ---
+        function handleLoadJsonClick() { /* ... no change ... */
+            jsonFileInput.click();
+        }
+
+        // UPDATED: Handle file selection for the NEW JSON format
+        function handleJsonFileSelected(event) { /* ... no change ... */
+            const file = event.target.files[0];
+            if (!file) { return; }
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                const fileContent = e.target.result;
+                let loadedInputData; // Data directly from the file
+
+                try { loadedInputData = JSON.parse(fileContent); }
+                catch (error) { alert(`Error parsing JSON file: ${error.message}`); return; }
+
+                if (!Array.isArray(loadedInputData)) { alert("Invalid JSON format: Top level must be an array of case pairings."); return; }
+
+                const processedData = [];
+                let validationPassed = true;
+
+                for (let i = 0; i < loadedInputData.length; i++) {
+                    const item = loadedInputData[i];
+                    if (typeof item !== 'object' || item === null ||
+                        !item.hasOwnProperty('moving_brief') || typeof item.moving_brief !== 'object' ||
+                        !item.hasOwnProperty('response_brief') || typeof item.response_brief !== 'object' ||
+                        !item.hasOwnProperty('true_links') || !Array.isArray(item.true_links) ||
+                        !item.moving_brief?.hasOwnProperty('brief_id') ||
+                        !Array.isArray(item.moving_brief?.brief_arguments) ||
+                        !item.response_brief?.hasOwnProperty('brief_id') ||
+                        !Array.isArray(item.response_brief?.brief_arguments) )
+                    {
+                        alert(`Invalid JSON structure in item ${i + 1}: Each item must have moving_brief (object with brief_id, brief_arguments array), response_brief (object with brief_id, brief_arguments array), and true_links (array).`);
+                        validationPassed = false; break;
+                    }
+
+                    const caseId = `CASE_${i + 1}`;
+                    const movingBriefId = item.moving_brief.brief_id || 'N/A';
+                    const responseBriefId = item.response_brief.brief_id || 'N/A';
+                    const caseName = `Case ${i + 1}: Moving Brief ID (${movingBriefId}) Response Brief ID (${responseBriefId})`;
+
+                    processedData.push({ id: caseId, name: caseName, completed: false, moving_brief: item.moving_brief, response_brief: item.response_brief, true_links: item.true_links });
+                }
+
+                if (!validationPassed) { return; }
+
+                allCasesData = processedData;
+                currentCaseId = null; movingArgsMap.clear(); responseArgsMap.clear();
+                listContainer.innerHTML = ''; unlinkedListContainer.innerHTML = '';
+                contentArea.innerHTML = '<p class="placeholder-message">Loading new data...</p>';
+                populateDropdown();
+
+                if (allCasesData.length > 0) {
+                    caseSelector.selectedIndex = 0;
+                    loadCase(caseSelector.value);
+                } else { loadCase(null); }
+                alert(`Successfully loaded ${allCasesData.length} case(s) from JSON.`);
+            };
+            reader.onerror = function() { alert(`Error reading file: ${reader.error}`); };
+            reader.readAsText(file);
+            event.target.value = null;
+        }
+
+
+        function handleExportJsonClick() { /* ... no change ... */
+            // Exports the INTERNAL allCasesData structure
+            if (!allCasesData || allCasesData.length === 0) { alert("No data available to export."); return; }
+            try {
+                const jsonString = JSON.stringify(allCasesData, null, 2);
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                link.download = `argument_data_${timestamp}.json`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                setTimeout(() => URL.revokeObjectURL(link.href), 100);
+            } catch (error) { console.error("Error exporting JSON:", error); alert(`Error exporting data: ${error.message}`); }
+        }
+
+
+        // --- Initialization ---
+        caseSelector.addEventListener('change', (event) => loadCase(event.target.value));
+        markCompleteBtn.addEventListener('click', handleMarkComplete);
+        markIncompleteBtn.addEventListener('click', handleMarkIncomplete);
+        addResponseBtn.addEventListener('click', handleAddResponse);
+        loadJsonBtn.addEventListener('click', handleLoadJsonClick);
+        exportJsonBtn.addEventListener('click', handleExportJsonClick);
+        jsonFileInput.addEventListener('change', handleJsonFileSelected);
+
+        // Initial page setup
+        populateDropdown(); // Populate with default data initially
+        if (allCasesData.length > 0) {
+            const initialCaseId = caseSelector.value || allCasesData[0].id;
+             if (allCasesData.some(c => c.id === initialCaseId)) loadCase(initialCaseId);
+             else if (allCasesData.length > 0) loadCase(allCasesData[0].id);
+             else loadCase(null);
+        } else {
+             loadCase(null);
+        }
+
+    </script>
+
+</body>
+</html>
