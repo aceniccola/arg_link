@@ -1,7 +1,7 @@
 # our main working file. 
 # this file creates the links we need for the end of this project.
 
-import json  # How do I call json stuff again?
+import json 
 import prebuilt_summarizer 
 import prebuilt_agent
 import verifier_agent # maybe we have another prebuilt thing that puts us back to square 1
@@ -50,7 +50,7 @@ def iteration(example: dict):
                 # retry this until success? Or do I let the agent call the verifier by not respond to the user. 
                 # If the verifier doesn't like the responses, it comes back with feedback.
             
-                
+
                 links = prebuilt_agent(agent_prompt.invoke({"argument": argument['content'], "responses": example['response_brief']}), example['response_brief'] )
 
                 for link in links:

@@ -1,4 +1,4 @@
-def stripjson(inp: str):
+def striptojson(inp: str):
     if inp.startswith("```json") and inp.endswith("```"):
         return inp[len("```json"): -len("```")].strip()
     elif inp.startswith("```") and inp.endswith("```"):
