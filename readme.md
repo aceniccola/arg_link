@@ -16,6 +16,7 @@ Argument Link is a Python-based legal argument analysis system that leverages ad
 Clone the repo:
 ```bash
 git clone https://github.com/aceniccola/arg_link.git
+cd arg_link
 ```
 
 Install the required dependencies:
