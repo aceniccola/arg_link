@@ -108,7 +108,6 @@ The system expects JSON input with the following structure:
     ]
   },
   "true_links": [
-    // Ground truth links for evaluation
   ]
 }
 ```
