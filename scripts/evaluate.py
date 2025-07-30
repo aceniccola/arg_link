@@ -10,13 +10,15 @@ from typing import List, Dict, Any, Tuple, Set
 # We'll assume the function is named `iteration` and is available in `main.py`.
 # If your function has a different name or location, update the import below.
 try:
-    # Assuming main.py is in the same directory or Python path
+    # Import from the organized src folder
+    import sys
+    sys.path.append('../src')
     from main import iteration as process_brief_pair 
     # If main.py cannot be imported directly (e.g., due to __main__ block),
     # you'll need to refactor its core logic into importable functions.
 except ImportError:
-    print("Error: Could not import the processing function from main.py.")
-    print("Please ensure main.py is structured to allow importing its core logic (e.g., the 'iteration' function).")
+    print("Error: Could not import the processing function from src/main.py.")
+    print("Please ensure src/main.py is structured to allow importing its core logic (e.g., the 'iteration' function).")
     exit(1)
 # --- End Assumption ---
 

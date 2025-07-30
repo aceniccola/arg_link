@@ -2,9 +2,9 @@
 # this file creates the links we need for the end of this project.
 
 import json 
-import prebuilt_summarizer 
-import prebuilt_agent
-import verifier_agent # maybe we have another prebuilt thing that puts us back to square 1
+from . import prebuilt_summarizer 
+from . import prebuilt_agent
+from . import verifier_agent # maybe we have another prebuilt thing that puts us back to square 1
 from langchain_core.prompts import PromptTemplate
 # import user prompt stuff from langchain
 # import data
@@ -80,6 +80,13 @@ def test(data: json):
     pass # for now
 
 if __name__ == "__main__":
-
+    import json
+    
+    # Load data from the organized data folder
+    with open("../data/stanford_hackathon_brief_pairs_clean.json", "r") as f:
+        data = json.load(f)
+    
+    # Process the data and save results
+    results = main(data)
     with open("output.txt", "w") as file:
-        file.write(str(main()))
+        file.write(str(results))

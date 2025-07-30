@@ -25,6 +25,12 @@ Install the required dependencies:
 pip install -r requirements.txt
 ```
 
+For development, you can also install the package in editable mode:
+
+```bash
+pip install -e .
+```
+
 Set up your environment variables in a `.env` file:
 
 ```bash
@@ -37,14 +43,19 @@ GOOGLE_FEDERAL_SEARCH=your_federal_search_engine_id
 
 ### Basic Usage
 
-Process a set of legal brief pairs to identify argument-response links:
+**Quick Start:**
+```bash
+python run.py
+```
+
+**Or process a set of legal brief pairs programmatically:**
 
 ```python
 import json
-from main import main
+from src.main import main
 
 # Load your legal brief data
-with open("stanford_hackathon_brief_pairs_clean.json", "r") as f:
+with open("data/stanford_hackathon_brief_pairs_clean.json", "r") as f:
     data = json.load(f)
 
 # Process all examples to find argument links
@@ -56,8 +67,8 @@ print(all_links)
 
 **Argument Summarization:**
 ```python
-from prebuilt_summarizer import call_summarizer
-from main import summarizer_prompt
+from src.prebuilt_summarizer import call_summarizer
+from src.main import summarizer_prompt
 
 # Summarize a single argument
 argument_text = "Your legal argument here"
@@ -67,8 +78,8 @@ summary = call_summarizer(prompt)
 
 **Response Matching:**
 ```python
-from prebuilt_agent import call_agent
-from main import agent_prompt
+from src.prebuilt_agent import call_agent
+from src.main import agent_prompt
 
 # Find responses for an argument
 argument = "Your moving argument"
@@ -79,8 +90,8 @@ matches = call_agent(prompt)
 
 **Link Verification:**
 ```python
-from verifier_agent import call_agent as verify_agent
-from main import verifier_prompt
+from src.verifier_agent import call_agent as verify_agent
+from src.main import verifier_prompt
 
 # Verify an argument-response link
 argument = "Original argument"
@@ -116,14 +127,48 @@ The system expects JSON input with the following structure:
 }
 ```
 
+## Project Structure
+
+```
+arg_link/
+├── src/                    # Core application modules
+│   ├── __init__.py
+│   ├── main.py            # Main orchestration pipeline
+│   ├── models.py          # Gemini model configurations
+│   ├── prebuilt_agent.py  # Response matching agent
+│   ├── prebuilt_summarizer.py  # Argument summarization
+│   ├── verifier_agent.py  # Link verification system
+│   ├── tools.py           # Research tools integration
+│   └── utils.py           # Utility functions
+├── data/                   # Data files
+│   ├── input.json
+│   ├── stanford_hackathon_brief_pairs.json
+│   └── stanford_hackathon_brief_pairs_clean.json
+├── scripts/                # Utility and evaluation scripts
+│   ├── a.py
+│   ├── evaluate.py
+│   ├── final_summarizer.py
+│   ├── graph.py
+│   └── summarizer.py
+├── frontend/               # Web interface
+│   └── argument_link_frontend.html
+├── docs/                   # Documentation
+│   ├── Brief Pair Argument Counter Argument Linking.pdf
+│   └── BLP HACKATHON IP RELEASE AND ASSIGNMENT Terms.pdf
+├── run.py                  # Simple runner script
+├── setup.py                # Package setup configuration
+├── requirements.txt
+└── readme.md
+```
+
 ## Architecture
 
-- **Models** (`models.py`): Three-tier Gemini model configuration for different complexity levels
-- **Tools** (`tools.py`): Research tools including Google Search, Federal Register, Wikipedia, and web browsing
-- **Summarizer** (`prebuilt_summarizer.py`): ReAct agent for argument analysis and summarization
-- **Matcher** (`prebuilt_agent.py`): Core agent for identifying argument-response relationships
-- **Verifier** (`verifier_agent.py`): Validation system for ensuring link accuracy
-- **Main Pipeline** (`main.py`): Orchestrates the complete argument linking workflow
+- **Models** (`src/models.py`): Three-tier Gemini model configuration for different complexity levels
+- **Tools** (`src/tools.py`): Research tools including Google Search, Federal Register, Wikipedia, and web browsing
+- **Summarizer** (`src/prebuilt_summarizer.py`): ReAct agent for argument analysis and summarization
+- **Matcher** (`src/prebuilt_agent.py`): Core agent for identifying argument-response relationships
+- **Verifier** (`src/verifier_agent.py`): Validation system for ensuring link accuracy
+- **Main Pipeline** (`src/main.py`): Orchestrates the complete argument linking workflow
 
 ## Future Development
 

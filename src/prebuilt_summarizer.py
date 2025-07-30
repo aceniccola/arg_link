@@ -1,7 +1,7 @@
 # TODO: make this better!
 import json
-from models import high_thinking_model
-from tools import tools
+from .models import high_thinking_model
+from .tools import tools
 # does printstream work for this usecase? 
 # otherwise, is there anyway to interact with the copilotkit?
 from langchain_core.prompts import PromptTemplate
@@ -53,7 +53,7 @@ def print_summarizer(input: str, summarizer_graph = summarizer_graph, config = c
     print_stream(summarizer_graph, input, config) 
 
 if __name__ == "__main__":
-    with open("stanford_hackathon_brief_pairs_clean.json", "r") as f:
+    with open("../data/stanford_hackathon_brief_pairs_clean.json", "r") as f:
         data = json.load(f)
     for example in data:
         print("-------------------------------- moving brief --------------------------------")

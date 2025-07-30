@@ -3,7 +3,7 @@
 # this file allows us to quickly test our ReAct agent and gives us minimal control over its inner workings and interperetability
 # TODO: make this better!
 
-from models import high_thinking_model
+from .models import high_thinking_model
 # does printstream work for this usecase? 
 # otherwise, is there anyway to interact with the copilotkit?
 from langgraph.prebuilt import create_react_agent 
